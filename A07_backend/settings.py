@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
+    'backend',
 ]
 
 MIDDLEWARE = [
@@ -47,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'A07_backend.urls'
@@ -118,7 +121,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# 允许跨域请求
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",
+    "http://your-springboot-domain.com",
+]
+
+OSS_ACCESS_KEY_ID = 'LTAI5tShTia6WkoWKtBtPUqa'
+OSS_ACCESS_KEY_SECRET = 'G7geRohxcNvt5ejrHpz3gcTchpyJnA'
+OSS_ENDPOINT = 'oss-cn-beijing.aliyuncs.com'
+OSS_BUCKET_NAME = 'firstgogogo'
