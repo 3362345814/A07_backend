@@ -1,5 +1,9 @@
+import cv2
 import oss2
 from django.conf import settings
+
+auth = oss2.Auth(settings.OSS_ACCESS_KEY_ID, settings.OSS_ACCESS_KEY_SECRET)
+bucket = oss2.Bucket(auth, settings.OSS_ENDPOINT, settings.OSS_BUCKET_NAME)
 
 def download_from_oss(url):
     """
@@ -7,9 +11,6 @@ def download_from_oss(url):
     :param url: OSS文件完整URL
     :return: 文件二进制内容
     """
-    auth = oss2.Auth(settings.OSS_ACCESS_KEY_ID, settings.OSS_ACCESS_KEY_SECRET)
-    bucket = oss2.Bucket(auth, settings.OSS_ENDPOINT, settings.OSS_BUCKET_NAME)
-
     # 从URL中提取object key
     object_key = url.split(f'https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/')[-1]
     try:
@@ -19,3 +20,12 @@ def download_from_oss(url):
         raise ValueError("OSS文件不存在")
     except oss2.exceptions.OssError as e:
         raise RuntimeError(f"OSS访问失败: {str(e)}")
+
+def upload_to_oss(img_name, image):
+    try:
+        _, buf = cv2.imencode('.jpg', image)
+
+        bucket.put_object(img_name, buf.tobytes())
+        return f"https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/{img_name}"
+    except oss2.exceptions.OssError as e:
+        raise RuntimeError(f"OSS上传失败: {str(e)}")
