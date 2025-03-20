@@ -190,6 +190,10 @@ def remove_black_borders(img):
 class VesselProcessor:
     _instance = None
 
+    def __init__(self):
+        self.model = None
+        self.device = None
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -292,6 +296,10 @@ def dynamic_blend(base, enhanced, mask):
 
 class OpticDiscProcessor:
     _instance = None
+
+    def __init__(self):
+        self.model = None
+        self.device = None
 
     def __new__(cls):
         if cls._instance is None:
