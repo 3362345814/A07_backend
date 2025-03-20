@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .oss_utils import download_from_oss
-from .image_processor import process_images
+from .image_process import process_images
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def process_medical_images(request):
         # 下载和处理逻辑保持不变
         left_image = download_from_oss(left_url)
         right_image = download_from_oss(right_url)
-        result = process_images(left_image, right_image, left_name, right_name)
+        result = process_images(left_image, right_image, left_name, right_name, left_url, right_url)
 
         if not result['success']:
             return JsonResponse(result, status=500)
@@ -51,6 +51,7 @@ def process_medical_images(request):
                 "right_vessel_url": result['right_vessel_url'],
                 "left_disk_url": result['left_disk_url'],
                 "right_disk_url": result['right_disk_url'],
+                "suggestions": result['suggestions']
             }
         })
 

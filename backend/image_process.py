@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from A07_backend import settings
+from .model_api import get_suggestions
 from .model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmentor
 from .oss_utils import upload_to_oss
 
@@ -16,7 +17,7 @@ def analyze_image(image_data):
     nparr = np.frombuffer(image_data, np.uint8)
     return cv2.imdecode(nparr, cv2.IMREAD_COLOR_BGR)
 
-def process_images(left_data, right_data, left_name, right_name):
+def process_images(left_data, right_data, left_name, right_name, left_url, right_url):
     vessel_model = VesselProcessor()
     disk_model = OpticDiscProcessor()
     try:
@@ -90,6 +91,8 @@ def process_images(left_data, right_data, left_name, right_name):
         left_disk_url = upload_to_oss(left_disk_name, left_disk)
         right_disk_url = upload_to_oss(right_disk_name, right_disk)
 
+        suggestions = get_suggestions(left_url, right_url, result['predictions'])
+
         return {
             "success": True,
             "predictions": result['predictions'],
@@ -99,6 +102,7 @@ def process_images(left_data, right_data, left_name, right_name):
             "right_vessel_url": right_vessel_url,
             "left_disk_url": left_disk_url,
             "right_disk_url": right_disk_url,
+            "suggestions": suggestions
         }
     except Exception as e:
         return {"success": False, "error": str(e)}

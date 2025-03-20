@@ -11,6 +11,12 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+from segmentation_models_pytorch.base.hub_mixin import MODEL_CARD
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -131,7 +137,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://your-springboot-domain.com",
 ]
 
-OSS_ACCESS_KEY_ID = 'LTAI5tShTia6WkoWKtBtPUqa'
-OSS_ACCESS_KEY_SECRET = 'G7geRohxcNvt5ejrHpz3gcTchpyJnA'
-OSS_ENDPOINT = 'oss-cn-beijing.aliyuncs.com'
-OSS_BUCKET_NAME = 'firstgogogo'
+OSS_ACCESS_KEY_ID = os.getenv('OSS_ACCESS_KEY_ID')
+OSS_ACCESS_KEY_SECRET = os.getenv('OSS_ACCESS_KEY_SECRET')
+OSS_ENDPOINT = os.getenv('OSS_ENDPOINT')
+OSS_BUCKET_NAME = os.getenv('OSS_BUCKET_NAME')
+
+MODEL_API_KEY = os.getenv('MODEL_API_KEY')
