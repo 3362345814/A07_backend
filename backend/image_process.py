@@ -4,8 +4,9 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageFont
+
 from A07_backend import settings
-from .model_api import get_suggestions
+from .model_api import get_suggestions, get_drugs
 from .model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmentor
 from .oss_utils import upload_to_oss
 
@@ -95,6 +96,7 @@ def process_images(left_data, right_data, left_name, right_name, left_url, right
         right_disk_url = upload_to_oss(right_disk_name, right_disk)
 
         suggestions = get_suggestions(left_url, right_url, result['predictions'])
+        drags = get_drugs(result['predictions'])
 
         return {
             "success": True,
@@ -105,7 +107,8 @@ def process_images(left_data, right_data, left_name, right_name, left_url, right
             "right_vessel_url": right_vessel_url,
             "left_disk_url": left_disk_url,
             "right_disk_url": right_disk_url,
-            "suggestions": suggestions
+            **suggestions,
+            **drags
         }
     except Exception as e:
         return {"success": False, "error": str(e)}

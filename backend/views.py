@@ -1,13 +1,15 @@
 import json
+import logging
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from .oss_utils import download_from_oss
+
 from .image_process import process_images
-import logging
+from .oss_utils import download_from_oss
 
 logger = logging.getLogger(__name__)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -51,7 +53,8 @@ def process_medical_images(request):
                 "right_vessel_url": result['right_vessel_url'],
                 "left_disk_url": result['left_disk_url'],
                 "right_disk_url": result['right_disk_url'],
-                "suggestions": result['suggestions']
+                "suggestions": result['suggestions'],
+                "drags": result['drags'],
             }
         })
 
