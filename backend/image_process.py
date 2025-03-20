@@ -3,7 +3,7 @@ import os
 import cv2
 import numpy as np
 import torch
-
+from PIL import Image, ImageDraw, ImageFont
 from A07_backend import settings
 from .model_api import get_suggestions
 from .model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmentor
@@ -16,6 +16,7 @@ def analyze_image(image_data):
     """处理图像二进制数据"""
     nparr = np.frombuffer(image_data, np.uint8)
     return cv2.imdecode(nparr, cv2.IMREAD_COLOR_BGR)
+
 
 def process_images(left_data, right_data, left_name, right_name, left_url, right_url):
     vessel_model = VesselProcessor()
@@ -55,7 +56,6 @@ def process_images(left_data, right_data, left_name, right_name, left_url, right
         left_vessel = vessel_enhancement(left_img, left_vessel)
         right_vessel = vessel_enhancement(right_img, right_vessel)
 
-
         left_vessel_url = upload_to_oss(left_vessel_name, left_vessel)
         right_vessel_url = upload_to_oss(right_vessel_name, right_vessel)
 
@@ -84,7 +84,10 @@ def process_images(left_data, right_data, left_name, right_name, left_url, right
         left_disk = cv2.resize(left_disk, (512, 512))
         right_disk = cv2.resize(right_disk, (512, 512))
 
-        # 保存视盘掩模（新增部分）
+        left_disk = add_detection_text(left_disk)
+        right_disk = add_detection_text(right_disk)
+
+        # 保存视盘掩模（
         left_disk_name = left_name.replace('left', 'left_disk')
         right_disk_name = right_name.replace('right', 'right_disk')
 
@@ -115,7 +118,8 @@ def double_width(img):
 
 def split_image(img):
     w = img.shape[1]
-    return img[:, :w//2], img[:, w//2:]
+    return img[:, :w // 2], img[:, w // 2:]
+
 
 def remove_black_borders(img):
     def smart_retina_preprocessing(cv_img):
@@ -220,7 +224,7 @@ class VesselProcessor:
 
     def _postprocess(self, output):
         mask = (output.squeeze().cpu().numpy() > 0.5).astype(np.uint8) * 255
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
         return cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
 
@@ -251,18 +255,20 @@ def vessel_enhancement(original_img, vessel_mask):
 
     return final
 
+
 def multi_scale_enhance(img):
     """修正后的LAB空间处理"""
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
 
     # 仅增强亮度通道
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
     enhanced_l = clahe.apply(l)
 
     # 保持a、b通道原样
     lab = cv2.merge((enhanced_l, a, b))
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)  # 注意转换方向
+
 
 def dynamic_blend(base, enhanced, mask):
     """动态混合算法（修复版）"""
@@ -323,19 +329,54 @@ class OpticDiscProcessor:
 
     def _postprocess(self, output):
         mask = (output.squeeze().cpu().numpy() > 0.5).astype(np.uint8) * 255
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         return cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
 
 def process_optic_disk(disk_image):
     # 非锐化掩模增强细节
-    blurred = cv2.GaussianBlur(disk_image, (5,5), 2)
+    blurred = cv2.GaussianBlur(disk_image, (5, 5), 2)
     sharpened = cv2.addWeighted(disk_image, 1.5, blurred, -0.7, 0)
 
     # 自适应对比度增强（CLAHE）
     lab = cv2.cvtColor(sharpened, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
     enhanced_l = clahe.apply(l)
     enhanced_lab = cv2.merge((enhanced_l, a, b))
 
     return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+
+def add_detection_text(img):
+    """当图像全黑时添加提示文字"""
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if gray_image.mean() > 10:
+        return img
+    # 转换颜色空间到PIL格式
+    pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+    # 创建绘图对象
+    draw = ImageDraw.Draw(pil_img)
+
+    try:
+        font_path = os.path.join(settings.BASE_DIR, 'backend', 'MiSans', 'MiSans.ttf')
+        # 加载中文字体（需确保字体文件存在）
+        font = ImageFont.truetype(font_path, 32)
+    except:
+        print("字体加载失败，使用默认字体")
+        font = ImageFont.load_default()  # 备用字体
+
+    # 在图像中心绘制文字
+    text = "未检测到视盘"
+    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+
+    x = (img.shape[1] - text_width) // 2
+    y = (img.shape[0] - text_height) // 2
+
+    draw.text((x, y), text, font=font, fill=(255, 255, 255))
+
+    # 转换回OpenCV格式
+    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
