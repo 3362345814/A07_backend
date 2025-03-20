@@ -130,8 +130,3 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://your-springboot-domain.com",
 ]
-
-OSS_ACCESS_KEY_ID = 'LTAI5tShTia6WkoWKtBtPUqa'
-OSS_ACCESS_KEY_SECRET = 'G7geRohxcNvt5ejrHpz3gcTchpyJnA'
-OSS_ENDPOINT = 'oss-cn-beijing.aliyuncs.com'
-OSS_BUCKET_NAME = 'firstgogogo'
