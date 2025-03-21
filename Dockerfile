@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
-
 # 创建工作目录
 WORKDIR /app
 COPY . .
@@ -33,5 +32,4 @@ RUN mkdir -p /app/staticfiles && \
 # 暴露端口
 EXPOSE 8000
 
-# 启动命令（使用Gunicorn作为WSGI服务器）
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "A07_backend.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--timeout", "180", "A07_backend.wsgi:application"]

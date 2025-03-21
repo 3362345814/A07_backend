@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 
 import cv2
@@ -95,8 +96,12 @@ def process_images(left_data, right_data, left_name, right_name, left_url, right
         left_disk_url = upload_to_oss(left_disk_name, left_disk)
         right_disk_url = upload_to_oss(right_disk_name, right_disk)
 
-        suggestions = get_suggestions(left_url, right_url, result['predictions'])
-        drags = get_drugs(result['predictions'])
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_suggestions = executor.submit(get_suggestions, left_url, right_url, result['predictions'])
+            future_drugs = executor.submit(get_drugs, result['predictions'])
+
+            suggestions = future_suggestions.result()
+            drugs = future_drugs.result()
 
         return {
             "success": True,
@@ -108,7 +113,7 @@ def process_images(left_data, right_data, left_name, right_name, left_url, right
             "left_disk_url": left_disk_url,
             "right_disk_url": right_disk_url,
             **suggestions,
-            **drags
+            **drugs
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -198,10 +203,10 @@ class VesselProcessor:
 
     def initialize_model(self):
         """加载血管分割模型"""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "mps")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = VesselSegmentor().to(self.device)
         model_path = os.path.join(settings.BASE_DIR, 'backend', 'models', 'vessel_model.pth')
-        self.model.load_state_dict(torch.load(model_path))
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.eval()
 
     def predict_vessels(self, image_data):
@@ -301,10 +306,10 @@ class OpticDiscProcessor:
 
     def initialize_model(self):
         """加载视盘分割模型"""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "mps")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = OpticDiscSegmentor().to(self.device)
         model_path = os.path.join(settings.BASE_DIR, 'backend', 'models', 'disk_model.pth')
-        self.model.load_state_dict(torch.load(model_path))
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.eval()
 
     def predict_disc(self, image_data):

@@ -47,15 +47,15 @@ def get_suggestions(left_url, right_url, predictions):
 
 def get_drugs(predictions):
     completion = client.chat.completions.create(
-        model="qwen-max-0125",
+        model="qwen2.5-14b-instruct-1m",
         messages=[
             {"role": "system", "content": [
                 {"type": "text", "text": "你是一个专业的眼科医生，你需要根据患者患病的种类，给出所有推荐的药物，并且给出药物对应的功能。"
                                          "格式保持为json格式，如下："
-                                         "{drags: [{'function': '功能1', 'drag': ['药物1', '药物2', '药物3']},"
-                                         "{'function': '功能2', 'drag': ['药物1', '药物2', '药物3']},"
-                                         "{'function': '功能3', 'drag': ['药物1', '药物2', '药物3']}]}"
-                                         "每一个功能最多3种药物，最多3种功能"}
+                                         "{drugs: [{'function': '功能1', 'drug': ['药物1', '药物2', '药物3']},"
+                                         "{'function': '功能2', 'drug': ['药物1', '药物2', '药物3']},"
+                                         "{'function': '功能3', 'drug': ['药物1', '药物2', '药物3']}]}"
+                                         "每一个功能最多3种药物，最多3种功能，功能控制在8个字以内。"}
             ]},
             {"role": "user", "content": [
                 {"type": "text",

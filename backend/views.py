@@ -54,7 +54,7 @@ def process_medical_images(request):
                 "left_disk_url": result['left_disk_url'],
                 "right_disk_url": result['right_disk_url'],
                 "suggestions": result['suggestions'],
-                "drags": result['drags'],
+                "drugs": result['drugs'],
             }
         })
 

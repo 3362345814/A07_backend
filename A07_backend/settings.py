@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-isvx9jku7%=hnx12qjjz-b7(s4&9r)9b@ujbbg1et3_1apt!x5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 
@@ -128,7 +128,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # 允许跨域请求
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
-    "http://your-springboot-domain.com",
 ]
 
 OSS_ACCESS_KEY_ID = os.getenv('OSS_ACCESS_KEY_ID')
