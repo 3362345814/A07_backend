@@ -47,12 +47,7 @@ def process_medical_images(request):
             "success": True,
             "message": {
                 "predictions": result['predictions'],
-                "left_heatmap_url": result['left_heatmap_url'],
-                "right_heatmap_url": result['right_heatmap_url'],
-                "left_vessel_url": result['left_vessel_url'],
-                "right_vessel_url": result['right_vessel_url'],
-                "left_disk_url": result['left_disk_url'],
-                "right_disk_url": result['right_disk_url'],
+                "images": result['images'],
                 "suggestions": result['suggestions'],
                 "drugs": result['drugs'],
             }

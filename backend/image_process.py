@@ -12,6 +12,7 @@ from .model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmento
 from .oss_utils import upload_to_oss
 
 model_service = EyeDiagnosisModel()
+device = torch.device("cuda" if torch.cuda.is_available() else "mps")
 
 
 def analyze_image(image_data):
@@ -106,12 +107,14 @@ def process_images(left_data, right_data, left_name, right_name, left_url, right
         return {
             "success": True,
             "predictions": result['predictions'],
-            "left_heatmap_url": left_heatmap_url,
-            "right_heatmap_url": right_heatmap_url,
-            "left_vessel_url": left_vessel_url,
-            "right_vessel_url": right_vessel_url,
-            "left_disk_url": left_disk_url,
-            "right_disk_url": right_disk_url,
+            "images": {
+                "left_heatmap_url": left_heatmap_url,
+                "right_heatmap_url": right_heatmap_url,
+                "left_vessel_url": left_vessel_url,
+                "right_vessel_url": right_vessel_url,
+                "left_disk_url": left_disk_url,
+                "right_disk_url": right_disk_url,
+            },
             **suggestions,
             **drugs
         }
@@ -203,7 +206,7 @@ class VesselProcessor:
 
     def initialize_model(self):
         """加载血管分割模型"""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         self.model = VesselSegmentor().to(self.device)
         model_path = os.path.join(settings.BASE_DIR, 'backend', 'models', 'vessel_model.pth')
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
@@ -306,7 +309,7 @@ class OpticDiscProcessor:
 
     def initialize_model(self):
         """加载视盘分割模型"""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         self.model = OpticDiscSegmentor().to(self.device)
         model_path = os.path.join(settings.BASE_DIR, 'backend', 'models', 'disk_model.pth')
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))

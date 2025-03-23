@@ -5,10 +5,20 @@ from openai import OpenAI
 from A07_backend.settings import MODEL_API_KEY
 
 client = OpenAI(
-    # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
     api_key=MODEL_API_KEY,
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
 )
+
+
+def parse_json_result(completion):
+    result = completion.choices[0].message.content
+    result = result[result.find('{'):result.rfind('}') + 1]
+    result = result.replace("'", "\"")
+    try:
+        result = json.loads(result)
+        return {"success": True, **result}
+    except json.decoder.JSONDecodeError:
+        return {"success": False}
 
 
 def get_suggestions(left_url, right_url, predictions):
@@ -33,16 +43,7 @@ def get_suggestions(left_url, right_url, predictions):
             ]}
         ]
     )
-    result = completion.choices[0].message.content
-    # 去除{}前后的内容
-    result = result[result.find('{'):result.rfind('}') + 1]
-    result = result.replace("'", "\"")
-    try:
-        result = json.loads(result)
-        return {"success": True, **result}
-    except json.JSONDecodeError:
-        print(result)
-        return {"success": False}
+    return parse_json_result(completion)
 
 
 def get_drugs(predictions):
@@ -64,12 +65,4 @@ def get_drugs(predictions):
             ]}
         ]
     )
-    result = completion.choices[0].message.content
-    result = result[result.find('{'):result.rfind('}') + 1]
-    result = result.replace("'", "\"")
-    try:
-        result = json.loads(result)
-        return {"success": True, **result}
-    except json.JSONDecodeError:
-        print(result)
-        return {"success": False}
+    return parse_json_result(completion)
