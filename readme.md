@@ -1,6 +1,6 @@
-# 血管及视盘检测增强算法
+# 多模态眼底图像智能分析系统
 
-## 血管检测算法
+## 血管增强算法
 
 本系统采用基于深度学习的双阶段血管增强技术，实现精准的血管网络可视化：
 <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
@@ -120,3 +120,27 @@ class OpticDiscProcessor:
 </div>
 
 本算法在ODIR-5K数据集测试中达到血管检测Dice系数0.89，视盘定位IOU 0.93，可有效处理低对比度、病灶遮挡等复杂临床场景。
+
+## 多模态模型设计
+
+### 核心架构设计
+
+![流程图](images/qwen_stream.png)
+
+### 关键技术特性
+
+**视觉-语言联合建模**
+
+- 采用Qwen2.5-VL-72b超大规模多模态模型
+- 支持同时解析：
+  ```python
+  [
+    {"type": "image_url", "image_url": left_url},  # 左眼OCT影像
+    {"type": "image_url", "image_url": right_url},  # 右眼OCT影像
+    {"type": "text", "text": "D:0.92,G:0.87..."}   # 概率化诊断指标
+  ]
+  ```
+- 实现影像特征与病理指标的跨模态注意力融合
+
+
+
