@@ -5,8 +5,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .image_process import process_images
-from .oss_utils import download_from_oss
+from .image_process import ImageProcess
+from .oss_utils import OSSUtils
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,10 @@ def process_medical_images(request):
                 "error": "Missing image URLs"
             }, status=400)
 
-        # 下载和处理逻辑保持不变
-        left_image = download_from_oss(left_url)
-        right_image = download_from_oss(right_url)
-        result = process_images(left_image, right_image, left_name, right_name, left_url, right_url)
+        oss_utils = OSSUtils()
+        left_image = oss_utils.download_from_oss(left_url)
+        right_image = oss_utils.download_from_oss(right_url)
+        result = ImageProcess().process_images(left_image, right_image, left_name, right_name, left_url, right_url)
 
         if not result['success']:
             return JsonResponse(result, status=500)
