@@ -7,10 +7,11 @@ import torch
 from PIL import Image, ImageDraw, ImageFont
 
 from A07_backend import settings
-from .CAM import LayerCAM
-from .model_api import ModelApi
-from .model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmentor
-from .oss_utils import OSSUtils
+from backend.service.CAM import LayerCAM
+from backend.service.model_api import ModelApi
+from backend.service.model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmentor
+from backend.service.oss_utils import OSSUtils
+from backend.service.qr_service import QRService
 
 model_service = EyeDiagnosisModel()
 device = torch.device("cuda" if torch.cuda.is_available() else "mps")
@@ -23,11 +24,12 @@ class ImageProcess(object):
         nparr = np.frombuffer(image_data, np.uint8)
         return cv2.imdecode(nparr, cv2.IMREAD_COLOR_BGR)
 
-    def process_images(self, left_data, right_data, left_name, right_name, left_url, right_url):
+    def process_images(self, left_data, right_data, left_name, right_name, left_url, right_url, name, age, gender):
         vessel_model = VesselProcessor()
         disk_model = OpticDiscProcessor()
         layer_cam = LayerCAM()
         try:
+            id = left_name.split('_')[0]
             left_img = self.analyze_image(left_data)
             right_img = self.analyze_image(right_data)
 
@@ -58,8 +60,8 @@ class ImageProcess(object):
                 for layer_name, heatmap in layer_heatmaps.items():
                     expanded_img = self.double_width(heatmap)
                     left_heatmap, right_heatmap = self.split_image(expanded_img)
-                    left_heatmap_name = left_name.replace('left', f"left_{class_name}_{layer_name}_heatmap")
-                    right_heatmap_name = right_name.replace('right', f"right_{class_name}_{layer_name}_heatmap")
+                    left_heatmap_name = id + f'/left_{class_name}_{layer_name}_heatmap.jpg'
+                    right_heatmap_name = id + f'/right_{class_name}_{layer_name}_heatmap.jpg'
                     left_heatmap_url = oss_utils.upload_to_oss(left_heatmap_name, left_heatmap)
                     right_heatmap_url = oss_utils.upload_to_oss(right_heatmap_name, right_heatmap)
                     left_layers.append(left_heatmap_url)
@@ -73,8 +75,8 @@ class ImageProcess(object):
             right_vessel = vessel_model.predict_vessels(right_data)
 
             # 保存血管掩模
-            left_vessel_name = left_name.replace('left', 'left_vessel')
-            right_vessel_name = right_name.replace('right', 'right_vessel')
+            left_vessel_name = id + '/left_vessel.jpg'
+            right_vessel_name = id + '/right_vessel.jpg'
 
             left_vessel = self.vessel_enhancement(left_img, left_vessel)
             right_vessel = self.vessel_enhancement(right_img, right_vessel)
@@ -111,8 +113,8 @@ class ImageProcess(object):
             right_disk = self.add_detection_text(right_disk)
 
             # 保存视盘掩模（
-            left_disk_name = left_name.replace('left', 'left_disk')
-            right_disk_name = right_name.replace('right', 'right_disk')
+            left_disk_name = id + '/left_disk.jpg'
+            right_disk_name = id + '/right_disk.jpg'
 
             left_disk_url = oss_utils.upload_to_oss(left_disk_name, left_disk)
             right_disk_url = oss_utils.upload_to_oss(right_disk_name, right_disk)
@@ -126,7 +128,7 @@ class ImageProcess(object):
                 suggestions = future_suggestions.result()
                 drugs = future_drugs.result()
 
-            return {
+            datas = {
                 "success": True,
                 "predictions": result['predictions'],
                 "images": {
@@ -139,12 +141,29 @@ class ImageProcess(object):
                         "left": left_disk_url,
                         "right": right_disk_url,
                     },
+                    "original": {
+                        "left": left_url,
+                        "right": right_url,
+                    }
                 },
                 **suggestions,
                 **drugs
             }
+
+            qr_service = QRService()
+            report_name = id + "/report.html"
+            report_html = qr_service.generate_report_html(datas, name, age, gender, report_name)
+            qr_name = id + "/qr_code.jpg"
+            qr_code = qr_service.generate_caoliao_qrcode(report_html, qr_name, name, age, gender)
+
+            return {
+                **datas,
+                "report_html": report_html,
+                "qr_code": qr_code,
+            }
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            print(e)
+            return {"success": False, "message": str(e)}
 
     def double_width(self, img):
         height, width = img.shape[:2]

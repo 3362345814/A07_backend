@@ -32,3 +32,14 @@ class OSSUtils:
             return f"https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/{img_name}"
         except oss2.exceptions.OssError as e:
             raise RuntimeError(f"OSS上传失败: {str(e)}")
+
+    def upload_html_to_oss(self, html_name, html_content):
+        try:
+            self.bucket.put_object(html_name, html_content, headers={
+                'Content-Type': 'text/html; charset=utf-8',  # 明确指定字符集
+                'Content-Disposition': 'inline',  # 关键设置，告诉浏览器内联显示而不是下载
+                'Cache-Control': 'no-cache',
+            })
+            return f"https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/{html_name}"
+        except oss2.exceptions.OssError as e:
+            raise RuntimeError(f"OSS上传失败: {str(e)}")

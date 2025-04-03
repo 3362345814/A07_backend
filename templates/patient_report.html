@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>眼底图像分析报告</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --danger-color: #f72585;
+            --warning-color: #f8961e;
+            --info-color: #4895ef;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .report-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(67, 97, 238, 0.15);
+        }
+
+        .report-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .report-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 0.75rem;
+            font-size: 1.5rem;
+        }
+
+        .image-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .image-card {
+            margin-bottom: 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .image-card:hover {
+            transform: scale(1.02);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .image-card .card-body {
+            padding: 1rem;
+            background-color: #fff;
+        }
+
+        .image-card .card-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 350px;
+            margin-bottom: 1.5rem;
+        }
+
+        .heatmap-tabs .nav-link {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--dark-color);
+            border: none;
+            margin-right: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .heatmap-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .heatmap-tabs .nav-link:not(.active):hover {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .heatmap-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        .heatmap-nav .btn {
+            border-radius: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            font-weight: 500;
+        }
+
+        .heatmap-layer-info {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+
+        .image-pair {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .image-pair-item {
+            flex: 1;
+            min-width: 45%;
+        }
+
+        .alert {
+            border-radius: 0.75rem;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            border-left-color: var(--info-color);
+        }
+
+        .alert-warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .drug-category {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: rgba(76, 201, 240, 0.1);
+            border-radius: 0.75rem;
+        }
+
+        .drug-category h5 {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .drug-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .drug-list li {
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 1rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+        }
+
+        .drug-list li::before {
+            content: "•";
+            color: var(--primary-color);
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-right: 0.5rem;
+        }
+
+        .patient-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .patient-info-item {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .image-pair-item {
+                min-width: 100%;
+            }
+
+            .report-header {
+                padding: 1rem;
+            }
+
+            .report-section {
+                padding: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <!-- 报告头部 -->
+    <div class="report-header text-center">
+        <h2><i class="bi bi-eye-fill"></i> 眼底图像分析报告</h2>
+        <div class="patient-info">
+            <span class="patient-info-item"><i class="bi bi-person-fill"></i> {{ name }}</span>
+            <span class="patient-info-item"><i class="bi bi-calendar-event"></i> {{ age }}岁</span>
+            <span class="patient-info-item"><i class="bi bi-gender-ambiguous"></i> {{ gender }}</span>
+            <span class="patient-info-item"><i class="bi bi-clock-history"></i> {{ timestamp }}</span>
+        </div>
+    </div>
+
+    <!-- 诊断结果 -->
+    <div class="report-section">
+        <h3 class="section-title"><i class="bi bi-clipboard2-pulse"></i>诊断预测</h3>
+        <div id="diagnosisChart" class="chart-container"></div>
+        <div class="alert alert-warning mt-3">
+            <strong><i class="bi bi-exclamation-triangle"></i> 注意：</strong>以上诊断预测仅供参考，具体结果需结合医生专业知识和医学影像分析。
+        </div>
+        <div class="alert alert-info">
+            <strong><i class="bi bi-info-circle-fill"></i> 诊断说明：</strong>
+            <ul class="mb-0">
+                <li><strong>D:</strong> 糖尿病视网膜病变</li>
+                <li><strong>H:</strong> 高血压视网膜病变</li>
+                <li><strong>G:</strong> 青光眼</li>
+                <li><strong>C:</strong> 白内障</li>
+                <li><strong>A:</strong> 年龄相关性黄斑变性</li>
+                <li><strong>M:</strong> 近视性视网膜病变</li>
+                <li><strong>O:</strong> 其他视网膜病变</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 原图 -->
+    <div class="report-section">
+        <h3 class="section-title"><i class="bi bi-images"></i>原始眼底图像</h3>
+        <div class="image-pair">
+            <div class="image-pair-item">
+                <div class="image-card card">
+                    <img src="{{ images.original.left }}" class="card-img-top" alt="左眼原图">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-eye"></i> 左眼</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="image-pair-item">
+                <div class="image-card card">
+                    <img src="{{ images.original.right }}" class="card-img-top" alt="右眼原图">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-eye"></i> 右眼</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 血管图像 -->
+    <div class="report-section">
+        <h3 class="section-title"><i class="bi bi-share"></i>血管分析</h3>
+        <div class="image-pair">
+            <div class="image-pair-item">
+                <div class="image-card card">
+                    <img src="{{ images.vessels.left }}" class="card-img-top" alt="左眼血管图">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-share"></i> 左眼血管</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="image-pair-item">
+                <div class="image-card card">
+                    <img src="{{ images.vessels.right }}" class="card-img-top" alt="右眼血管图">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-share"></i> 右眼血管</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视盘图像 -->
+    <div class="report-section">
+        <h3 class="section-title"><i class="bi bi-circle-fill"></i>视盘分析</h3>
+        <div class="image-pair">
+            <div class="image-pair-item">
+                <div class="image-card card">
+                    <img src="{{ images.disks.left }}" class="card-img-top" alt="左眼视盘">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-circle-fill"></i> 左眼视盘</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="image-pair-item">
+                <div class="image-card card">
+                    <img src="{{ images.disks.right }}" class="card-img-top" alt="右眼视盘">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-circle-fill"></i> 右眼视盘</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 热力图分析 -->
+    <div class="report-section">
+        <h3 class="section-title"><i class="bi bi-thermometer-high"></i>热力图分析</h3>
+        <ul class="nav nav-tabs heatmap-tabs" id="heatmapTabs" role="tablist">
+            {% for class_name in images.heatmaps.contains %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if loop.first %}active{% endif %}"
+                            id="{{ class_name }}-tab" data-bs-toggle="tab"
+                            data-bs-target="#{{ class_name }}" type="button">
+                        {{ changeClassName(class_name) }}
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content pt-3" id="heatmapTabContent">
+            {% for class_name in images.heatmaps.contains %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                     id="{{ class_name }}" role="tabpanel">
+                    <h4 class="mt-3">{{ changeClassName(class_name) }}</h4>
+
+                    <div class="heatmap-viewer" data-class="{{ class_name }}">
+                        <div class="image-pair">
+                            <div class="image-pair-item">
+                                <div class="image-card card">
+                                    <img src="{{ images.heatmaps.left[class_name][0] }}"
+                                         class="heatmap-image-left card-img-top"
+                                         alt="{{ changeClassName(class_name) }}左眼热力图">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="bi bi-thermometer-high"></i> 左眼热力图</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="image-pair-item">
+                                <div class="image-card card">
+                                    <img src="{{ images.heatmaps.right[class_name][0] }}"
+                                         class="heatmap-image-right card-img-top"
+                                         alt="{{ changeClassName(class_name) }}右眼热力图">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="bi bi-thermometer-high"></i> 右眼热力图</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="heatmap-layer-info">
+                            <i class="bi bi-layers"></i> 当前显示: 第1层/共{{ images.heatmaps.left[class_name]|length }}层
+                        </div>
+                        <div class="heatmap-nav">
+                            <button class="btn btn-outline-primary prev-layer" disabled>
+                                <i class="bi bi-chevron-left"></i> 上一张
+                            </button>
+                            <button class="btn btn-outline-primary next-layer">
+                                下一张 <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 治疗建议 -->
+    {% if suggestions %}
+        <div class="report-section">
+            <h3 class="section-title"><i class="bi bi-clipboard2-check"></i>临床观察与建议</h3>
+            <div class="alert alert-info">
+                <ul class="mb-0">
+                    {% for suggestion in suggestions %}
+                        <li><i class="bi bi-check-circle"></i> {{ suggestion }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- 推荐药物 -->
+    {% if drugs %}
+        <div class="report-section">
+            <h3 class="section-title"><i class="bi bi-capsule-pill"></i>推荐药物治疗方案</h3>
+            {% for drug_category in drugs %}
+                <div class="drug-category">
+                    <h5><i class="bi bi-collection"></i> {{ drug_category.function }}药物</h5>
+                    <ul class="drug-list">
+                        {% for drug in drug_category.drug %}
+                            <li>{{ drug }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
+            <div class="alert alert-warning mt-3">
+                <strong><i class="bi bi-exclamation-triangle"></i> 注意：</strong>以上药物建议仅供参考，具体用药方案请遵医嘱。
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+
+    // 初始化ECharts图表
+    document.addEventListener('DOMContentLoaded', function() {
+        // 诊断概率图表
+        var chartDom = document.getElementById('diagnosisChart');
+        var myChart = echarts.init(chartDom);
+
+        var predictions = {{ predictions|tojson }};
+        var xData = [];
+        var seriesData = [];
+        var colors = [];
+
+        // 准备数据
+        for (var key in predictions) {
+            xData.push(key);
+            seriesData.push(predictions[key]);
+
+            // 根据概率设置颜色
+            if (predictions[key] > 0.7) {
+                colors.push('#f72585'); // 红色表示高风险
+            } else if (predictions[key] > 0.4) {
+                colors.push('#f8961e'); // 橙色表示中等风险
+            } else {
+                colors.push('#4cc9f0'); // 蓝色表示低风险
+            }
+        }
+
+        var option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                },
+                formatter: function(params) {
+                    return '<strong>' + params[0].name + '</strong><br/>概率: ' + (params[0].value * 100).toFixed(2) + '%';
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '10%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: xData,
+                axisLabel: {
+                    interval: 0,
+                    rotate: 0,
+                    color: '#666',
+                    fontSize: 12
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: '#ddd'
+                    }
+                },
+                axisTick: {
+                    alignWithLabel: true
+                }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: function(value) {
+                        return (value * 100) + '%';
+                    },
+                    color: '#666',
+                    fontSize: 12
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: '#f0f0f0'
+                    }
+                },
+                min: 0,
+                max: 1
+            },
+            series: [{
+                name: '患病概率',
+                type: 'bar',
+                data: seriesData,
+                itemStyle: {
+                    color: function(params) {
+                        return colors[params.dataIndex];
+                    },
+                    borderRadius: [4, 4, 0, 0]
+                },
+                label: {
+                    show: true,
+                    position: 'top',
+                    formatter: function(params) {
+                        return (params.value * 100).toFixed(1) + '%';
+                    },
+                    color: '#333',
+                    fontSize: 12
+                },
+                barWidth: '60%',
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.2)'
+                    }
+                }
+            }]
+        };
+
+        myChart.setOption(option);
+
+        // 响应式调整图表大小
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+
+        // 热力图导航功能
+        document.querySelectorAll('.heatmap-viewer').forEach(viewer => {
+            const class_name = viewer.dataset.class;
+            const leftImages = {{ images.heatmaps.left|tojson }};
+            const rightImages = {{ images.heatmaps.right|tojson }};
+            const leftUrls = leftImages[class_name];
+            const rightUrls = rightImages[class_name];
+            const totalLayers = leftUrls.length;
+
+            let currentLayer = 0;
+            const leftImg = viewer.querySelector('.heatmap-image-left');
+            const rightImg = viewer.querySelector('.heatmap-image-right');
+            const layerInfo = viewer.querySelector('.heatmap-layer-info');
+            const prevBtn = viewer.querySelector('.prev-layer');
+            const nextBtn = viewer.querySelector('.next-layer');
+
+            function updateLayer() {
+                leftImg.src = leftUrls[currentLayer];
+                rightImg.src = rightUrls[currentLayer];
+                layerInfo.innerHTML = `<i class="bi bi-layers"></i> 当前显示: 第${currentLayer + 1}层/共${totalLayers}层`;
+
+                prevBtn.disabled = currentLayer === 0;
+                nextBtn.disabled = currentLayer === totalLayers - 1;
+            }
+
+            prevBtn.addEventListener('click', () => {
+                if (currentLayer > 0) {
+                    currentLayer--;
+                    updateLayer();
+                }
+            });
+
+            nextBtn.addEventListener('click', () => {
+                if (currentLayer < totalLayers - 1) {
+                    currentLayer++;
+                    updateLayer();
+                }
+            });
+        });
+
+        // 激活Bootstrap的标签页功能
+        var tabElms = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabElms.forEach(function(tabEl) {
+            tabEl.addEventListener('click', function(event) {
+                event.preventDefault();
+                var tab = new bootstrap.Tab(this);
+                tab.show();
+            });
+        });
+    });
+</script>

@@ -5,8 +5,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .image_process import ImageProcess
-from .oss_utils import OSSUtils
+from backend.service.image_process import ImageProcess
+from backend.service.oss_utils import OSSUtils
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,9 @@ def process_medical_images(request):
         # 获取参数
         left_url = data.get('left_url')
         right_url = data.get('right_url')
+        name = data.get('name')
+        age = data.get('age')
+        gender = data.get('gender')
 
         left_name = left_url.split('/')[-1]
         right_name = right_url.split('/')[-1]
@@ -38,7 +41,8 @@ def process_medical_images(request):
         oss_utils = OSSUtils()
         left_image = oss_utils.download_from_oss(left_url)
         right_image = oss_utils.download_from_oss(right_url)
-        result = ImageProcess().process_images(left_image, right_image, left_name, right_name, left_url, right_url)
+        result = ImageProcess().process_images(left_image, right_image, left_name, right_name, left_url, right_url,
+                                               name, age, gender)
 
         if not result['success']:
             return JsonResponse(result, status=500)
@@ -50,12 +54,14 @@ def process_medical_images(request):
                 "images": result['images'],
                 "suggestions": result['suggestions'],
                 "drugs": result['drugs'],
+                "report_html": result['report_html'],
+                "qr_code": result['qr_code'],
             }
         })
 
     except json.JSONDecodeError:
         logger.error("Invalid JSON format")
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return JsonResponse({"success": False, "message": "Invalid JSON"}, status=400)
     except Exception as e:
         logger.error(f"Processing failed: {str(e)}", exc_info=True)
         return JsonResponse({
