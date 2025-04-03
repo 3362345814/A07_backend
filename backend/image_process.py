@@ -7,6 +7,7 @@ import torch
 from PIL import Image, ImageDraw, ImageFont
 
 from A07_backend import settings
+from .CAM import LayerCAM
 from .model_api import ModelApi
 from .model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmentor
 from .oss_utils import OSSUtils
@@ -25,6 +26,7 @@ class ImageProcess(object):
     def process_images(self, left_data, right_data, left_name, right_name, left_url, right_url):
         vessel_model = VesselProcessor()
         disk_model = OpticDiscProcessor()
+        layer_cam = LayerCAM()
         try:
             left_img = self.analyze_image(left_data)
             right_img = self.analyze_image(right_data)
@@ -38,17 +40,33 @@ class ImageProcess(object):
 
             model_service.initialize_model()
 
-            result = model_service.generate_heatmap(left_img, right_img)
+            result = layer_cam.compute_heatmaps(left_img, right_img)
 
-            expanded_img = self.double_width(result['heatmap'])
-            left_heatmap, right_heatmap = self.split_image(expanded_img)
+            predictions = result['predictions']
 
-            left_heatmap_name = left_name.replace('left', 'left_heatmap')
-            right_heatmap_name = right_name.replace('right', 'right_heatmap')
+            heatmaps = {
+                'contains': [class_name for class_name, prob in predictions.items() if prob > 0.5],
+                'left': {},
+                'right': {}
+            }
 
             oss_utils = OSSUtils()
-            left_heatmap_url = oss_utils.upload_to_oss(left_heatmap_name, left_heatmap)
-            right_heatmap_url = oss_utils.upload_to_oss(right_heatmap_name, right_heatmap)
+
+            for class_name, layer_heatmaps in result['heatmaps'].items():
+                left_layers = []
+                right_layers = []
+                for layer_name, heatmap in layer_heatmaps.items():
+                    expanded_img = self.double_width(heatmap)
+                    left_heatmap, right_heatmap = self.split_image(expanded_img)
+                    left_heatmap_name = left_name.replace('left', f"left_{class_name}_{layer_name}_heatmap")
+                    right_heatmap_name = right_name.replace('right', f"right_{class_name}_{layer_name}_heatmap")
+                    left_heatmap_url = oss_utils.upload_to_oss(left_heatmap_name, left_heatmap)
+                    right_heatmap_url = oss_utils.upload_to_oss(right_heatmap_name, right_heatmap)
+                    left_layers.append(left_heatmap_url)
+                    right_layers.append(right_heatmap_url)
+
+                heatmaps['left'][class_name] = left_layers
+                heatmaps['right'][class_name] = right_layers
 
             # 血管预测
             left_vessel = vessel_model.predict_vessels(left_data)
@@ -112,12 +130,15 @@ class ImageProcess(object):
                 "success": True,
                 "predictions": result['predictions'],
                 "images": {
-                    "left_heatmap_url": left_heatmap_url,
-                    "right_heatmap_url": right_heatmap_url,
-                    "left_vessel_url": left_vessel_url,
-                    "right_vessel_url": right_vessel_url,
-                    "left_disk_url": left_disk_url,
-                    "right_disk_url": right_disk_url,
+                    "heatmaps": heatmaps,
+                    "vessels": {
+                        "left": left_vessel_url,
+                        "right": right_vessel_url,
+                    },
+                    "disks": {
+                        "left": left_disk_url,
+                        "right": right_disk_url,
+                    },
                 },
                 **suggestions,
                 **drugs
