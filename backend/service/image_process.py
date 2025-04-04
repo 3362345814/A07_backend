@@ -9,11 +9,10 @@ from PIL import Image, ImageDraw, ImageFont
 from A07_backend import settings
 from backend.service.CAM import LayerCAM
 from backend.service.model_api import ModelApi
-from backend.service.model_service import EyeDiagnosisModel, VesselSegmentor, OpticDiscSegmentor
+from backend.service.model_service import VesselSegmentor, OpticDiscSegmentor
 from backend.service.oss_utils import OSSUtils
 from backend.service.qr_service import QRService
 
-model_service = EyeDiagnosisModel()
 device = torch.device("cuda" if torch.cuda.is_available() else "mps")
 
 
@@ -39,8 +38,6 @@ class ImageProcess(object):
             # 调整原图和掩膜的尺寸
             left_img = cv2.resize(left_img, (512, 512))
             right_img = cv2.resize(right_img, (512, 512))
-
-            model_service.initialize_model()
 
             result = layer_cam.compute_heatmaps(left_img, right_img)
 
