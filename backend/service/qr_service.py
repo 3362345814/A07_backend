@@ -42,7 +42,7 @@ class QRService:
             report_data['timestamp'] = datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
             report_data['name'] = name
             report_data['age'] = age
-            report_data['gender'] = '男' if gender == '0' else '女'
+            report_data['gender'] = '男' if gender == 0 else '女'
 
             # 渲染HTML
             html_content = template.render(report_data, changeClassName=self.change_class_name)
@@ -88,7 +88,7 @@ class QRService:
             'cliF1': '眼底检查单',
             'cliF2': name,
             'cliF3': age,
-            'cliF4': '男' if gender == '0' else '女',
+            'cliF4': '男' if gender == 0 else '女',
             'cliF5': datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
         }
 
