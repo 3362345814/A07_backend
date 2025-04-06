@@ -1,5 +1,6 @@
 import concurrent.futures
 import os
+from datetime import datetime, timezone, timedelta
 
 import cv2
 import numpy as np
@@ -28,7 +29,7 @@ class ImageProcess(object):
         disk_model = OpticDiscProcessor()
         layer_cam = LayerCAM()
         try:
-            id = left_name.split('_')[0]
+            id = left_name.split('_')[0] + '_' + left_name.split('_')[1]
             left_img = self.analyze_image(left_data)
             right_img = self.analyze_image(right_data)
 
@@ -36,10 +37,10 @@ class ImageProcess(object):
             right_img = self.remove_black_borders(right_img)
 
             # 调整原图和掩膜的尺寸
-            left_img = cv2.resize(left_img, (512, 512))
-            right_img = cv2.resize(right_img, (512, 512))
+            left_img_resize = cv2.resize(left_img, (512, 512))
+            right_img_resize = cv2.resize(right_img, (512, 512))
 
-            result = layer_cam.compute_heatmaps(left_img, right_img)
+            result = layer_cam.compute_heatmaps(left_img_resize, right_img_resize)
 
             predictions = result['predictions']
 
@@ -68,8 +69,9 @@ class ImageProcess(object):
                 heatmaps['right'][class_name] = right_layers
 
             # 血管预测
-            left_vessel = vessel_model.predict_vessels(left_data)
-            right_vessel = vessel_model.predict_vessels(right_data)
+            left_vessel = cv2.resize(vessel_model.predict_vessels(left_data), (left_img.shape[1], left_img.shape[0]))
+            right_vessel = cv2.resize(vessel_model.predict_vessels(right_data),
+                                      (right_img.shape[1], right_img.shape[0]))
 
             # 保存血管掩模
             left_vessel_name = id + '/left_vessel.jpg'
@@ -124,6 +126,12 @@ class ImageProcess(object):
 
                 suggestions = future_suggestions.result()
                 drugs = future_drugs.result()
+
+                revisit_time = suggestions.get('revisit_time')
+                # 当前时间加上复诊时间
+                current_time = datetime.now(timezone(timedelta(hours=8)))
+                revisit_time = current_time + timedelta(days=revisit_time)
+                suggestions['revisit_time'] = revisit_time.strftime('%Y-%m-%d')
 
             datas = {
                 "success": True,

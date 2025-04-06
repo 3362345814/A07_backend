@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-isvx9jku7%=hnx12qjjz-b7(s4&9r)9b@ujbbg1et3_1apt!x5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '172.25.93.157']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -127,7 +127,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 允许跨域请求
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",
+    "http://192.168.68.245:8088",
+]
+
+CORS_ALLOW_METHODS = [
+    'POST',  # 确保允许POST方法
+    'OPTIONS',
+    'GET',
+]
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
 ]
 
 OSS_ACCESS_KEY_ID = os.getenv('OSS_ACCESS_KEY_ID')

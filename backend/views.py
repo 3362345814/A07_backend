@@ -53,6 +53,7 @@ def process_medical_images(request):
                 "predictions": result['predictions'],
                 "images": result['images'],
                 "suggestions": result['suggestions'],
+                "revisit_time": result['revisit_time'],
                 "drugs": result['drugs'],
                 "report_html": result['report_html'],
                 "qr_code": result['qr_code'],

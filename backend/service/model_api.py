@@ -27,11 +27,12 @@ class ModelApi:
             model="qwen2.5-vl-72b-instruct",
             messages=[
                 {"role": "system", "content": [
-                    {"type": "text", "text": "你是一个专业的眼科医生，你需要根据以下两张眼底图的诊断结果，给出你对这两张图片的分析结果，"
+                    {"type": "text", "text": "你是一个专业的眼科医生，你需要根据以下两张眼底图的诊断结果，给出你对这两张图片的分析结果和推荐复诊时间，单位为天"
                                              "格式保持为json格式，如下："
                                              "{'suggestions': ['黄斑区出现微小出血点',"
                                              "'视网膜血管轻度扭曲',"
-                                             "'视盘边界清晰']}"
+                                             "'视盘边界清晰'],"
+                                             "'revisit_time': 5}"
                                              "对图片给出三条分析结果。"}
                 ]},
                 {"role": "user", "content": [
