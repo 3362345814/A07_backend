@@ -33,6 +33,9 @@ class ImageProcess(object):
             left_img = self.analyze_image(left_data)
             right_img = self.analyze_image(right_data)
 
+            if left_img.shape != right_img.shape:
+                right_img = cv2.resize(right_img, (left_img.shape[1], left_img.shape[0]))
+
             left_img = self.remove_black_borders(left_img)
             right_img = self.remove_black_borders(right_img)
 
@@ -69,8 +72,9 @@ class ImageProcess(object):
                 heatmaps['right'][class_name] = right_layers
 
             # 血管预测
-            left_vessel = cv2.resize(vessel_model.predict_vessels(left_data), (left_img.shape[1], left_img.shape[0]))
-            right_vessel = cv2.resize(vessel_model.predict_vessels(right_data),
+            left_vessel = cv2.resize(vessel_model.predict_vessels(left_img_resize),
+                                     (left_img.shape[1], left_img.shape[0]))
+            right_vessel = cv2.resize(vessel_model.predict_vessels(right_img_resize),
                                       (right_img.shape[1], right_img.shape[0]))
 
             # 保存血管掩模
@@ -84,8 +88,8 @@ class ImageProcess(object):
             right_vessel_url = oss_utils.upload_to_oss(right_vessel_name, right_vessel)
 
             # 新增视盘检测
-            left_disk = disk_model.predict_disc(left_data)
-            right_disk = disk_model.predict_disc(right_data)
+            left_disk = disk_model.predict_disc(left_img_resize)
+            right_disk = disk_model.predict_disc(right_img_resize)
 
             left_disk = cv2.bitwise_not(left_disk)
             right_disk = cv2.bitwise_not(right_disk)
@@ -360,10 +364,9 @@ class VesselProcessor:
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.eval()
 
-    def predict_vessels(self, image_data):
+    def predict_vessels(self, img):
         """处理单张眼底图像"""
         try:
-            img = ImageProcess().analyze_image(image_data)
             img = ImageProcess().remove_black_borders(img)
             input_tensor = self._preprocess(img)
             return self._postprocess(self._inference(input_tensor))
@@ -404,10 +407,9 @@ class OpticDiscProcessor:
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.eval()
 
-    def predict_disc(self, image_data):
+    def predict_disc(self, img):
         """处理单张眼底图像的视盘检测"""
         try:
-            img = ImageProcess().analyze_image(image_data)
             img = ImageProcess().remove_black_borders(img)
             original_shape = img.shape[:2]  # (高度, 宽度)
             input_tensor = self._preprocess(img)
