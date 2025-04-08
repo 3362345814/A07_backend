@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+import torch
 from dotenv import load_dotenv
 from segmentation_models_pytorch.base.hub_mixin import MODEL_CARD
 
@@ -149,3 +150,5 @@ MODEL_API_KEY = os.getenv('MODEL_API_KEY')
 
 CAOLIAO_API_KEY = os.getenv('CAOLIAO_API_KEY')
 CAOLIAO_API_SECRET = os.getenv('CAOLIAO_API_SECRET')
+
+DEFAULT_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps")

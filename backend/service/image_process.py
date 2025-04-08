@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageFont
+from keras.src.backend.torch.core import DEFAULT_DEVICE
 
 from A07_backend import settings
 from backend.service.CAM import LayerCAM
@@ -13,8 +14,6 @@ from backend.service.model_api import ModelApi
 from backend.service.model_service import VesselSegmentor, OpticDiscSegmentor
 from backend.service.oss_utils import OSSUtils
 from backend.service.qr_service import QRService
-
-device = torch.device("cuda" if torch.cuda.is_available() else "mps")
 
 
 class ImageProcess(object):
@@ -42,6 +41,8 @@ class ImageProcess(object):
             # 调整原图和掩膜的尺寸
             left_img_resize = cv2.resize(left_img, (512, 512))
             right_img_resize = cv2.resize(right_img, (512, 512))
+
+            print("疾病预测开始...")
 
             result = layer_cam.compute_heatmaps(left_img_resize, right_img_resize)
 
@@ -71,6 +72,8 @@ class ImageProcess(object):
                 heatmaps['left'][class_name] = left_layers
                 heatmaps['right'][class_name] = right_layers
 
+            print("血管分割开始...")
+
             # 血管预测
             left_vessel = cv2.resize(vessel_model.predict_vessels(left_img_resize),
                                      (left_img.shape[1], left_img.shape[0]))
@@ -87,7 +90,9 @@ class ImageProcess(object):
             left_vessel_url = oss_utils.upload_to_oss(left_vessel_name, left_vessel)
             right_vessel_url = oss_utils.upload_to_oss(right_vessel_name, right_vessel)
 
-            # 新增视盘检测
+            print("视盘检测开始...")
+
+            # 视盘检测
             left_disk = disk_model.predict_disc(left_img_resize)
             right_disk = disk_model.predict_disc(right_img_resize)
 
@@ -100,8 +105,8 @@ class ImageProcess(object):
             right_disk = cv2.dilate(right_disk, kernel)
 
             # 应用掩码
-            left_disk = cv2.bitwise_and(left_img, left_img, mask=left_disk)
-            right_disk = cv2.bitwise_and(right_img, right_img, mask=right_disk)
+            left_disk = cv2.bitwise_and(left_img_resize, left_img_resize, mask=left_disk)
+            right_disk = cv2.bitwise_and(right_img_resize, right_img_resize, mask=right_disk)
 
             left_disk = self.remove_black_borders(left_disk)
             right_disk = self.remove_black_borders(right_disk)
@@ -122,20 +127,22 @@ class ImageProcess(object):
             left_disk_url = oss_utils.upload_to_oss(left_disk_name, left_disk)
             right_disk_url = oss_utils.upload_to_oss(right_disk_name, right_disk)
 
+            print("生成建议...")
+
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 model_api = ModelApi()
                 future_suggestions = executor.submit(model_api.get_suggestions, left_url, right_url,
                                                      result['predictions'])
                 future_drugs = executor.submit(model_api.get_drugs, result['predictions'])
 
-                suggestions = future_suggestions.result()
-                drugs = future_drugs.result()
+            suggestions = future_suggestions.result()
+            drugs = future_drugs.result()
 
-                revisit_time = suggestions.get('revisit_time')
-                # 当前时间加上复诊时间
-                current_time = datetime.now(timezone(timedelta(hours=8)))
-                revisit_time = current_time + timedelta(days=revisit_time)
-                suggestions['revisit_time'] = revisit_time.strftime('%Y-%m-%d')
+            revisit_time = suggestions.get('revisit_time')
+            # 当前时间加上复诊时间
+            current_time = datetime.now(timezone(timedelta(hours=8)))
+            revisit_time = current_time + timedelta(days=revisit_time)
+            suggestions['revisit_time'] = revisit_time.strftime('%Y-%m-%d')
 
             datas = {
                 "success": True,
@@ -358,7 +365,7 @@ class VesselProcessor:
 
     def initialize_model(self):
         """加载血管分割模型"""
-        self.device = device
+        self.device = DEFAULT_DEVICE
         self.model = VesselSegmentor().to(self.device)
         model_path = os.path.join(settings.BASE_DIR, 'backend', 'models', 'vessel_model.pth')
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
@@ -401,7 +408,7 @@ class OpticDiscProcessor:
 
     def initialize_model(self):
         """加载视盘分割模型"""
-        self.device = device
+        self.device = DEFAULT_DEVICE
         self.model = OpticDiscSegmentor().to(self.device)
         model_path = os.path.join(settings.BASE_DIR, 'backend', 'models', 'disk_model.pth')
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
