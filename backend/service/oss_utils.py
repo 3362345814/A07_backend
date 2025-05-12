@@ -14,8 +14,8 @@ class OSSUtils:
         :param url: OSS文件完整URL
         :return: 文件二进制内容
         """
-        # 从URL中提取object key
-        object_key = url.split(f'https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/')[-1]
+        # 修改为从自定义域名中提取object key（假设绑定的域名是cdn.example.com）
+        object_key = url.split(f'{settings.OSS_CUSTOM_DOMAIN}/')[-1]
         try:
             result = self.bucket.get_object(object_key)
             return result.read()
@@ -27,19 +27,20 @@ class OSSUtils:
     def upload_to_oss(self, img_name, image):
         try:
             _, buf = cv2.imencode('.jpg', image)
-
             self.bucket.put_object(img_name, buf.tobytes())
-            return f"https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/{img_name}"
+            # 修改为返回自定义域名格式的URL
+            return f"https://{settings.OSS_CUSTOM_DOMAIN}/{img_name}"
         except oss2.exceptions.OssError as e:
             raise RuntimeError(f"OSS上传失败: {str(e)}")
 
     def upload_html_to_oss(self, html_name, html_content):
         try:
             self.bucket.put_object(html_name, html_content, headers={
-                'Content-Type': 'text/html; charset=utf-8',  # 明确指定字符集
-                'Content-Disposition': 'inline',  # 关键设置，告诉浏览器内联显示而不是下载
+                'Content-Type': 'text/html; charset=utf-8',
+                'Content-Disposition': 'inline',
                 'Cache-Control': 'no-cache',
             })
-            return f"https://{settings.OSS_BUCKET_NAME}.{settings.OSS_ENDPOINT}/{html_name}"
+            # 修改为返回自定义域名格式的URL
+            return f"https://{settings.OSS_CUSTOM_DOMAIN}/{html_name}"
         except oss2.exceptions.OssError as e:
             raise RuntimeError(f"OSS上传失败: {str(e)}")
