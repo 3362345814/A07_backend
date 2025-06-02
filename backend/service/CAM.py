@@ -122,7 +122,7 @@ class LayerCAM:
 
         # 创建模型输出和指定层的梯度计算图
         self.grad_model = Model(
-            inputs=[model.inputs],
+            inputs=model.inputs,
             outputs=[model.output] + [layer.output for layer in self.target_layers]
         )
 
@@ -150,10 +150,12 @@ class LayerCAM:
         original_image = image.copy()
         image = image / 255.0
         # 转换为batch形式
-        img_tensor = tf.convert_to_tensor(image[np.newaxis, ...])
+        img_tensor = tf.convert_to_tensor(image[np.newaxis, ...], dtype=tf.float32)
 
+        # NOTE: The input name 'input_1' should match your model's input layer name.
+        # You can print input names with: print([input.name for input in self.model.inputs])
         with tf.GradientTape(persistent=True) as tape:
-            outputs = self.grad_model(img_tensor)
+            outputs = self.grad_model({'input_layer': img_tensor})
             preds = outputs[0]
             layer_outputs = outputs[1:]
 

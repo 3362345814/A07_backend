@@ -154,4 +154,4 @@ MODEL_API_KEY = os.getenv('MODEL_API_KEY')
 CAOLIAO_API_KEY = os.getenv('CAOLIAO_API_KEY')
 CAOLIAO_API_SECRET = os.getenv('CAOLIAO_API_SECRET')
 
-DEFAULT_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps")
+DEFAULT_DEVICE = torch.device("cpu")
