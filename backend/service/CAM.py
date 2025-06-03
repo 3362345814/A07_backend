@@ -1,5 +1,8 @@
 import os
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # 禁用所有 GPU
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'false'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # 可选：避免 onednn 优化冲突
 import cv2
 import keras
 import numpy as np
@@ -145,17 +148,15 @@ class LayerCAM:
                 }
             }
         """
+        left_image = cv2.resize(left_image, (IMAGE_SIZE // 2 + 1, IMAGE_SIZE))
+        right_image = cv2.resize(right_image, (IMAGE_SIZE // 2, IMAGE_SIZE))
         image = np.concatenate([left_image, right_image], axis=1)
-        image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE))
         original_image = image.copy()
         image = image / 255.0
         # 转换为batch形式
         img_tensor = tf.convert_to_tensor(image[np.newaxis, ...], dtype=tf.float32)
-
-        # NOTE: The input name 'input_1' should match your model's input layer name.
-        # You can print input names with: print([input.name for input in self.model.inputs])
         with tf.GradientTape(persistent=True) as tape:
-            outputs = self.grad_model({'input_layer': img_tensor})
+            outputs = self.grad_model(img_tensor)
             preds = outputs[0]
             layer_outputs = outputs[1:]
 
